@@ -53,13 +53,30 @@ class Music(pygame.sprite.Sprite):
         self.rect.x = X_COORD_MUSIC
         self.rect.y = Y_COORD_MUSIC
 
+class Click_banner(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.image.load("./sprites/click_start.png").convert_alpha()
+        self.image.set_colorkey(BLACK)
+        self.rect = self.image.get_rect()
+        self.rect.x = X_COORD_CLICK_BANNER
+        self.rect.y = Y_COORD_CLICK_BANNER
+        self.speed_alpha = 2
+
+    def set_alpha(self, alpha):
+        self.image.set_alpha(alpha)
+
 
 class Game(object):
     def __init__(self):
+        self.menu = True
         self.playing = True 
         self.squares = []
         self.areas = {}
         self.game_paused = False
+        self.menu_background = pygame.image.load("./utils/img/menu.png").convert()
+        self.menu_click_banner = Click_banner()
+        self.menu_screen = pygame.Surface(SCREEN_SIZE, pygame.SRCALPHA)
         self.paused_screen = pygame.Surface(SCREEN_SIZE, pygame.SRCALPHA)
         self.pause_button = Pause()
         self.restart_button = Restart()
@@ -90,24 +107,42 @@ class Game(object):
             if event.type == pygame.QUIT:
                 self.playing = False
 
-            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not self.game_paused:
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not self.game_paused:
                 square_coords = self.get_square_coord(event.pos)
                 self.areas[square_coords].update()
 
-            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.game_paused:
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.game_paused:
                 self.game_paused = not self.game_paused
 
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.menu:
+                self.menu = False
+
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE and not self.menu:
                 self.game_paused = not self.game_paused
                 print("Space pressed")
                 
     
     def run_logic(self):
+        if self.menu:
+            last_alpha = self.menu_click_banner.image.get_alpha()
+            new_alpha = last_alpha - self.menu_click_banner.speed_alpha
+            if new_alpha <= 0 or new_alpha > 255:
+                self.menu_click_banner.speed_alpha *= -1
+
+            self.menu_click_banner.set_alpha(new_alpha)
+
         if self.game_paused:
             return
 
     def display_frame(self, screen):
         screen.fill(BACKGROUND_COLOR)
+
+        if self.menu:
+            self.menu_screen.blit(self.menu_background, FIRST_COORDS)
+            self.menu_screen.blit(self.menu_click_banner.image, self.menu_click_banner.rect)
+            screen.blit(self.menu_screen, FIRST_COORDS)
+            display.flip()
+            return
         
         for square in self.squares:
             pygame.draw.rect(screen, WHITE_SMOKE, square.shape, width=square.width)
@@ -116,10 +151,8 @@ class Game(object):
             self.paused_screen.fill(WHITE_BLURRED)
             screen.blit(self.paused_screen, FIRST_COORDS)
             self.pause_sprites.draw(screen)
-            print("Showing pause screen")
-        
-        display.flip()
 
+        display.flip()
 
     def get_square_coord(self, coords):
         x_mouse = coords[0]
