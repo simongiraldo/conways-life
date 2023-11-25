@@ -78,6 +78,15 @@ class Void_screen(pygame.sprite.Sprite):
     def set_alpha(self, alpha):
         self.image.set_alpha(alpha)
 
+class Play_button(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.image.load("./sprites/play_button.png").convert_alpha()
+        self.image.set_colorkey(WHITE)
+        self.rect = self.image.get_rect()
+        self.rect.x = 50
+        self.rect.y = 50
+
 
 class Game(object):
     def __init__(self):
@@ -96,8 +105,11 @@ class Game(object):
         self.restart_button = Restart()
         self.music_button = Music()
         self.pause_sprites = pygame.sprite.Group()
+        self.play_button = Play_button()
+        self.grid_sprites = pygame.sprite.Group()
 
         self.pause_sprites.add(self.pause_button, self.restart_button, self.music_button)
+        self.grid_sprites.add(self.play_button)
 
         x_coord = 0
         y_coord = 0
@@ -126,8 +138,12 @@ class Game(object):
                     self.menu = False
 
                 if not self.game_paused:
-                    square_coords = self.get_square_coord(event.pos)
-                    self.areas[square_coords].update()
+                    if self.play_button.rect.collidepoint(event.pos):
+                        self.play_button.remove(self.grid_sprites)
+                        print("Killed")
+                    else:
+                        square_coords = self.get_square_coord(event.pos)
+                        self.areas[square_coords].update()
 
                 elif self.game_paused:
                     if self.pause_button.rect.collidepoint(event.pos):
@@ -176,6 +192,7 @@ class Game(object):
         
         for square in self.squares:
             pygame.draw.rect(screen, WHITE_SMOKE, square.shape, width=square.width)
+        self.grid_sprites.draw(screen)
 
         if self.game_paused:
             self.paused_screen.fill(WHITE_BLURRED)
