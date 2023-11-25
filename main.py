@@ -66,6 +66,18 @@ class Click_banner(pygame.sprite.Sprite):
     def set_alpha(self, alpha):
         self.image.set_alpha(alpha)
 
+class Void_screen(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.image.load("./sprites/initial_animation.png").convert_alpha()
+        self.rect = self.image.get_rect()
+        self.rect.x = 0
+        self.rect.y = 0
+        self.speed_alpha = 2
+
+    def set_alpha(self, alpha):
+        self.image.set_alpha(alpha)
+
 
 class Game(object):
     def __init__(self):
@@ -73,6 +85,8 @@ class Game(object):
         self.playing = True 
         self.squares = []
         self.areas = {}
+        self.initial_animation = True
+        self.initial_animation_screen = Void_screen()
         self.game_paused = False
         self.menu_background = pygame.image.load("./utils/img/menu.png").convert()
         self.menu_click_banner = Click_banner()
@@ -107,22 +121,34 @@ class Game(object):
             if event.type == pygame.QUIT:
                 self.playing = False
 
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not self.game_paused:
-                square_coords = self.get_square_coord(event.pos)
-                self.areas[square_coords].update()
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if self.menu:
+                    self.menu = False
 
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.game_paused:
-                self.game_paused = not self.game_paused
+                if not self.game_paused:
+                    square_coords = self.get_square_coord(event.pos)
+                    self.areas[square_coords].update()
 
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.menu:
-                self.menu = False
+                elif self.game_paused:
+                    if self.pause_button.rect.collidepoint(event.pos):
+                        self.game_paused = False
+                    elif self.restart_button.rect.collidepoint(event.pos):
+                        self.__init__()
 
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE and not self.menu:
                 self.game_paused = not self.game_paused
                 print("Space pressed")
-                
+
     
     def run_logic(self):
+        if self.initial_animation:
+            last_alpha = self.initial_animation_screen.image.get_alpha()
+            if last_alpha == 0:
+                self.initial_animation = False
+            else:
+                new_alpha = last_alpha - self.initial_animation_screen.speed_alpha
+                self.initial_animation_screen.set_alpha(new_alpha)
+
         if self.menu:
             last_alpha = self.menu_click_banner.image.get_alpha()
             new_alpha = last_alpha - self.menu_click_banner.speed_alpha
@@ -140,6 +166,10 @@ class Game(object):
         if self.menu:
             self.menu_screen.blit(self.menu_background, FIRST_COORDS)
             self.menu_screen.blit(self.menu_click_banner.image, self.menu_click_banner.rect)
+
+            if self.initial_animation:
+                self.menu_screen.blit(self.initial_animation_screen.image, self.initial_animation_screen.rect)
+
             screen.blit(self.menu_screen, FIRST_COORDS)
             display.flip()
             return
@@ -204,8 +234,7 @@ if __name__ == "__main__":
 
 
 # Añadir menu de inicio, tal vez con un enlance a una pagina que explique de que trata el juego
-# Hacer que el click en la imagen de play, se reinicie el juego
-# Hacer que al click en restart, se limpie todo(self.__init__())
+# Hacer que al click en restart, hacer una transicion lenta
 # 
 # (El sonido puede ser una feature para despues)
 # 
