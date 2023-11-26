@@ -1,5 +1,5 @@
+from typing import Any
 import pygame
-import pygame.display as display
 from utils.colors import *
 from utils.constants import *
 
@@ -11,8 +11,18 @@ class Square():
             SQUARE_WIDTH,
             SQUARE_HEIGHT
         )
-        self.area = (x+30, y+30)
+        self.neighbors_areas = [
+            (x-30, y-30),
+            (x, y-30),
+            (x+30, y-30), 
+            (x-30, y),
+            (x+30, y),
+            (x-30, y+30),
+            (x, y+30),
+            (x+30, y+30)
+        ]
         self.width = 1
+        self.alive_neighbors = 0
 
     def update(self):
         if self.width == 1:
@@ -25,6 +35,18 @@ class Square():
 
     def die(self):
         self.width = 1
+
+    def is_alive(self):
+        return self.width == 0
+    
+    def is_dead(self):
+        return self.width == 1
+
+    def increment_alive_neighbors(self):
+        self.alive_neighbors += 1
+
+    def decrement_alive_neighbors(self):
+        self.alive_neighbors -= 1
 
 class Pause(pygame.sprite.Sprite):
     def __init__(self):
@@ -61,7 +83,7 @@ class Click_banner(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = X_COORD_CLICK_BANNER
         self.rect.y = Y_COORD_CLICK_BANNER
-        self.speed_alpha = 2
+        self.speed_alpha = 4
 
     def set_alpha(self, alpha):
         self.image.set_alpha(alpha)
@@ -92,11 +114,14 @@ class Game(object):
     def __init__(self):
         self.menu = True
         self.playing = True 
+        self.initial_animation = True
+        self.game_paused = False
+        self.executing = False
+        self.fps = FPS
+        self.alive_squares = []
         self.squares = []
         self.areas = {}
-        self.initial_animation = True
         self.initial_animation_screen = Void_screen()
-        self.game_paused = False
         self.menu_background = pygame.image.load("./utils/img/menu.png").convert()
         self.menu_click_banner = Click_banner()
         self.menu_screen = pygame.Surface(SCREEN_SIZE, pygame.SRCALPHA)
@@ -136,14 +161,33 @@ class Game(object):
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if self.menu:
                     self.menu = False
+                    self.fps = GRID_FPS
+                    continue
 
-                if not self.game_paused:
+                if not self.game_paused and not self.executing:
                     if self.play_button.rect.collidepoint(event.pos):
                         self.play_button.remove(self.grid_sprites)
-                        print("Killed")
+                        self.executing = True
                     else:
                         square_coords = self.get_square_coord(event.pos)
-                        self.areas[square_coords].update()
+                        square = self.areas[square_coords] 
+                        square.update()
+                        if square.width == 0:
+                            self.alive_squares.append(square)
+                            for i in range(NEIGHBORS_QUANTITY):
+                                coords = square.neighbors_areas[i]
+                                if self.areas.get(coords, NOT_FOUND) == NOT_FOUND:
+                                    continue
+
+                                self.areas[coords].increment_alive_neighbors()
+                        elif square.width == 1:
+                            self.alive_squares.remove(square)
+                            for i in range(NEIGHBORS_QUANTITY):
+                                coords = square.neighbors_areas[i]
+                                if self.areas.get(coords, NOT_FOUND) == NOT_FOUND:
+                                    continue
+
+                                self.areas[coords].decrement_alive_neighbors()
 
                 elif self.game_paused:
                     if self.pause_button.rect.collidepoint(event.pos):
@@ -153,7 +197,6 @@ class Game(object):
 
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE and not self.menu:
                 self.game_paused = not self.game_paused
-                print("Space pressed")
 
     
     def run_logic(self):
@@ -175,6 +218,54 @@ class Game(object):
 
         if self.game_paused:
             return
+        
+        if self.executing:
+            self.next_generation()
+    
+    def next_generation(self):
+        squares_to_die = []
+        squares_to_live = []
+        for square in self.squares:
+            if square.is_alive() and square.alive_neighbors > 3:
+                # dies cause overpopulaton
+                squares_to_die.append(square)
+
+            if square.is_alive() and (square.alive_neighbors == 2 or square.alive_neighbors == 3):
+                # Stays alive cause stabiliy
+                continue
+
+            if square.is_alive() and square.alive_neighbors < 2:
+                # dies cause underpopulation
+                squares_to_die.append(square)
+
+            if square.is_dead() and square.alive_neighbors == 3:
+                squares_to_live.append(square)
+        
+        self.kill_squares(squares_to_die)
+        self.born_squares(squares_to_live)
+
+
+    def kill_squares(self, squares_to_die):
+        for square in squares_to_die:
+            square.die()
+            for i in range(NEIGHBORS_QUANTITY):
+                coords = square.neighbors_areas[i]
+                if self.areas.get(coords, NOT_FOUND) == NOT_FOUND:
+                    continue
+
+                self.areas[coords].decrement_alive_neighbors()
+
+    def born_squares(self, squares_to_live):
+        for square in squares_to_live:
+            square.born()
+            for i in range(NEIGHBORS_QUANTITY):
+                coords = square.neighbors_areas[i]
+                if self.areas.get(coords, NOT_FOUND) == NOT_FOUND:
+                    continue
+
+                self.areas[coords].increment_alive_neighbors()
+
+
 
     def display_frame(self, screen):
         screen.fill(BACKGROUND_COLOR)
@@ -187,7 +278,7 @@ class Game(object):
                 self.menu_screen.blit(self.initial_animation_screen.image, self.initial_animation_screen.rect)
 
             screen.blit(self.menu_screen, FIRST_COORDS)
-            display.flip()
+            pygame.display.flip()
             return
         
         for square in self.squares:
@@ -199,7 +290,7 @@ class Game(object):
             screen.blit(self.paused_screen, FIRST_COORDS)
             self.pause_sprites.draw(screen)
 
-        display.flip()
+        pygame.display.flip()
 
     def get_square_coord(self, coords):
         x_mouse = coords[0]
@@ -225,9 +316,9 @@ class Game(object):
 
 def run():
     pygame.init()
-    display.init()
+    pygame.display.init()
 
-    screen = display.set_mode(SCREEN_SIZE)
+    screen = pygame.display.set_mode(SCREEN_SIZE)
     pygame.display.set_caption("Conway's life game")
 
     clock = pygame.time.Clock()
@@ -241,7 +332,7 @@ def run():
 
         game.display_frame(screen)
 
-        clock.tick(FPS)
+        clock.tick(game.fps)
         
     pygame.quit()
 
@@ -252,6 +343,12 @@ if __name__ == "__main__":
 
 # Añadir menu de inicio, tal vez con un enlance a una pagina que explique de que trata el juego
 # Hacer que al click en restart, hacer una transicion lenta
+# TODO:
+# Crear subfunciones para hacer el codigo mas legible y menos spaguetthi
+# Separar cada clase en archivos diferentes?
+# Hacer que al darle pause, poder parar la ejecucion y ver bien el patron, sin tener que mostar el menu de pause (Tal vez mover los botones en una parte de abajo del grid)
+# Hacer una opcion de grid dinamico, mientras se ejecuten las generaciones, puedo vivir o matar cuadros. Harian parte de la generacion despues de 2 segundos de haber hecho click 
+# Hacer que el tablero sea infinito, al pasar por el lado derecho, que vuelva por l izquierdo
 # 
 # (El sonido puede ser una feature para despues)
 # 
