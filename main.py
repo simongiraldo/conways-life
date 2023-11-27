@@ -1,4 +1,3 @@
-from typing import Any
 import pygame
 from utils.colors import *
 from utils.constants import *
