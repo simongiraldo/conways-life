@@ -341,7 +341,6 @@ if __name__ == "__main__":
 
 
 # Añadir menu de inicio, tal vez con un enlance a una pagina que explique de que trata el juego
-# Hacer que al click en restart, hacer una transicion lenta
 # TODO:
 # Crear subfunciones para hacer el codigo mas legible y menos spaguetthi
 # Separar cada clase en archivos diferentes?
