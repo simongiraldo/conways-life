@@ -238,6 +238,7 @@ class Game(object):
                 squares_to_die.append(square)
 
             if square.is_dead() and square.alive_neighbors == 3:
+                # Lives cause perfect company
                 squares_to_live.append(square)
         
         self.kill_squares(squares_to_die)
@@ -340,8 +341,8 @@ if __name__ == "__main__":
     run()
 
 
-# Añadir menu de inicio, tal vez con un enlance a una pagina que explique de que trata el juego
 # TODO:
+# Actalizar el readme con link a paginas con info sobre el juego y poner la info en general del proyeco
 # Crear subfunciones para hacer el codigo mas legible y menos spaguetthi
 # Separar cada clase en archivos diferentes?
 # Hacer que al darle pause, poder parar la ejecucion y ver bien el patron, sin tener que mostar el menu de pause (Tal vez mover los botones en una parte de abajo del grid)
