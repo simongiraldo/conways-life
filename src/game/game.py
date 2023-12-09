@@ -36,6 +36,9 @@ class Game(object):
         self._pause_sprites.add(self._pause_button, self._restart_button, self._music_button)
         self._grid_sprites.add(self._play_button)
 
+        self.set_initial_squares()
+
+    def set_initial_squares(self):
         x_coord = 0
         y_coord = 0
         while True:
@@ -66,28 +69,9 @@ class Game(object):
 
                 if not self._game_paused and not self._executing:
                     if self._play_button.rect.collidepoint(event.pos):
-                        self._play_button.remove(self._grid_sprites)
-                        self._executing = True
+                        self.remove_play_button()
                     else:
-                        square_coords = self.get_square_coords_by_click(event.pos)
-                        square = self._areas[square_coords] 
-                        square.update()
-                        if square.get_width() == 0:
-                            self._alive_squares.append(square)
-                            for i in range(NEIGHBORS_QUANTITY):
-                                coords = square.neighbors_areas[i]
-                                if self._areas.get(coords, NOT_FOUND) == NOT_FOUND:
-                                    continue
-
-                                self._areas[coords].increment_alive_neighbors()
-                        elif square.get_width() == 1:
-                            self._alive_squares.remove(square)
-                            for i in range(NEIGHBORS_QUANTITY):
-                                coords = square.neighbors_areas[i]
-                                if self._areas.get(coords, NOT_FOUND) == NOT_FOUND:
-                                    continue
-
-                                self._areas[coords].decrement_alive_neighbors()
+                        self.paint_square_clicked(event.pos)
 
                 elif self._game_paused:
                     if self._pause_button.rect.collidepoint(event.pos):
@@ -98,29 +82,66 @@ class Game(object):
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE and not self._menu:
                 self._game_paused = not self._game_paused
 
+    def paint_square_clicked(self, coords):
+        square_coords = self.get_square_coords_by_click(coords)
+        square = self._areas[square_coords] 
+        square.update()
+        if square.is_alive():
+            self._alive_squares.append(square)
+            self.set_alive_to_neighbors(square)
+            
+        elif square.is_dead():
+            self._alive_squares.remove(square)
+            self.set_dead_to_neighbors(square)
+            
+
+    def set_alive_to_neighbors(self, square):
+        for i in range(NEIGHBORS_QUANTITY):
+            coords = square.neighbors_areas[i]
+            if self._areas.get(coords, NOT_FOUND) == NOT_FOUND:
+                continue
+            self._areas[coords].increment_alive_neighbors()
+
+    def set_dead_to_neighbors(self, square):
+        for i in range(NEIGHBORS_QUANTITY):
+            coords = square.neighbors_areas[i]
+            if self._areas.get(coords, NOT_FOUND) == NOT_FOUND:
+                continue
+            self._areas[coords].decrement_alive_neighbors()
+
+    def remove_play_button(self):
+        self._play_button.remove(self._grid_sprites)
+        self._executing = True
+
     
     def run_logic(self):
         if self._initial_animation:
-            last_alpha = self._initial_animation_screen.image.get_alpha()
-            if last_alpha == 0:
-                self._initial_animation = False
-            else:
-                new_alpha = last_alpha - self._initial_animation_screen.get_speed_alpha()
-                self._initial_animation_screen.image.set_alpha(new_alpha)
+            self.run_initial_animation()
 
         if self._menu:
-            last_alpha = self._menu_click_banner.image.get_alpha()
-            new_alpha = last_alpha - self._menu_click_banner.get_speed_alpha()
-            if new_alpha <= 0 or new_alpha > 255:
-                self._menu_click_banner.change_speed_alpha_sign()
-
-            self._menu_click_banner.image.set_alpha(new_alpha)
+            self.run_click_banner_animation()
 
         if self._game_paused:
             return
         
         if self._executing:
             self.next_generation()
+
+    def run_initial_animation(self):
+        last_alpha = self._initial_animation_screen.image.get_alpha()
+        if last_alpha == 0:
+            self._initial_animation = False
+        else:
+            new_alpha = last_alpha - self._initial_animation_screen.get_speed_alpha()
+            self._initial_animation_screen.image.set_alpha(new_alpha)
+
+    def run_click_banner_animation(self):
+        last_alpha = self._menu_click_banner.image.get_alpha()
+        new_alpha = last_alpha - self._menu_click_banner.get_speed_alpha()
+        if new_alpha <= 0 or new_alpha > 255:
+            self._menu_click_banner.change_speed_alpha_sign()
+
+        self._menu_click_banner.image.set_alpha(new_alpha)
     
     def next_generation(self):
         squares_to_die = []
@@ -147,7 +168,6 @@ class Game(object):
         self.kill_squares(squares_to_die)
         self.born_squares(squares_to_live)
 
-
     def kill_squares(self, squares_to_die):
         for square in squares_to_die:
             square.die()
@@ -168,9 +188,7 @@ class Game(object):
 
                 self._areas[coords].increment_alive_neighbors()
 
-
-
-    def display_frame(self, screen):
+    def display_frames(self, screen):
         screen.fill(BACKGROUND_COLOR)
 
         if self._menu:

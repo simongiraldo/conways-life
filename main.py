@@ -1,6 +1,6 @@
 import pygame
 from src.game.game import Game
-from src.utils.constants import SCREEN_SIZE, FPS
+from src.utils.constants import SCREEN_SIZE
 
 
 def run():
@@ -19,7 +19,7 @@ def run():
 
         game.run_logic()
 
-        game.display_frame(screen)
+        game.display_frames(screen)
 
         clock.tick(game.fps)
         
