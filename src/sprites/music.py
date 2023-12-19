@@ -7,7 +7,7 @@ class Music(sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.image = image.load("./assets/sprites/music.png").convert()
-        self.image.set_colorkey(BLACK)
+        self.image.set_colorkey(WHITE)
         self.rect = self.image.get_rect()
         self.rect.x = X_COORD_MUSIC
         self.rect.y = Y_COORD_MUSIC

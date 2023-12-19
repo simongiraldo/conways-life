@@ -5,7 +5,8 @@ from ..sprites.restart import Restart
 from ..sprites.music import Music
 from ..sprites.click_banner import ClickBanner
 from ..sprites.void_screen import VoidScreen
-from ..sprites.play_button import PlayButton
+from ..sprites.play import Play
+from ..sprites.pause import Pause
 from ..utils.constants import *
 from ..utils.colors import *
 
@@ -16,7 +17,7 @@ class Game(object):
         self.fps = FPS
         self._menu = True
         self._initial_animation = True
-        self._game_paused = False
+        self._game_paused = True
         self._executing = False
         self._alive_squares = []
         self._squares = []
@@ -25,23 +26,26 @@ class Game(object):
         self._menu_background = pygame.image.load("./assets/static/menu.png").convert()
         self._menu_click_banner = ClickBanner()
         self._menu_screen = pygame.Surface(SCREEN_SIZE, pygame.SRCALPHA)
-        self._paused_screen = pygame.Surface(SCREEN_SIZE, pygame.SRCALPHA)
+        self._options_menu_rect = pygame.Rect(0, GRID_HEIGHT, SCREEN_WIDTH, OPTIONS_MENU_HEIGHT)
+        self._play_button = Play()
         self._pause_button = Pause()
         self._restart_button = Restart()
         self._music_button = Music()
-        self._pause_sprites = pygame.sprite.Group()
-        self._play_button = PlayButton()
-        self._grid_sprites = pygame.sprite.Group()
+        self._options_menu_sprites = pygame.sprite.Group()
 
-        self._pause_sprites.add(self._pause_button, self._restart_button, self._music_button)
-        self._grid_sprites.add(self._play_button)
-
+        self._options_menu_sprites.add(self._play_button, self._restart_button, self._music_button)
         self.set_initial_squares()
 
     def set_initial_squares(self):
         x_coord = 0
         y_coord = 0
         while True:
+            if x_coord > SCREEN_WIDTH:
+                x_coord = 0
+                y_coord += SQUARE_HEIGHT
+            if y_coord >= GRID_HEIGHT:
+                break
+
             square = Square(x_coord, y_coord)
             self._squares.append(square)
 
@@ -49,12 +53,6 @@ class Game(object):
             self._areas[area] = square
 
             x_coord += SQUARE_WIDTH
-
-            if x_coord > SCREEN_WIDTH:
-                x_coord = 0
-                y_coord += SQUARE_HEIGHT
-            if y_coord > SCREEN_HEIGHT:
-                break
 
     def proccess_events(self):
         for event in pygame.event.get():
@@ -67,20 +65,16 @@ class Game(object):
                     self.fps = GRID_FPS
                     continue
 
-                if not self._game_paused and not self._executing:
-                    if self._play_button.rect.collidepoint(event.pos):
-                        self.remove_play_button()
-                    else:
-                        self.paint_square_clicked(event.pos)
-
-                elif self._game_paused:
+                if self._options_menu_rect.collidepoint(event.pos):
                     if self._pause_button.rect.collidepoint(event.pos):
-                        self._game_paused = False
+                        self.change_play_pause_button()
                     elif self._restart_button.rect.collidepoint(event.pos):
                         self.__init__()
+                else:
+                    self.paint_square_clicked(event.pos)
 
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE and not self._menu:
-                self._game_paused = not self._game_paused
+                self.change_play_pause_button()
 
     def paint_square_clicked(self, coords):
         square_coords = self.get_square_coords_by_click(coords)
@@ -93,7 +87,6 @@ class Game(object):
         elif square.is_dead():
             self._alive_squares.remove(square)
             self.set_dead_to_neighbors(square)
-
 
     def set_alive_to_neighbors(self, square):
         for i in range(NEIGHBORS_QUANTITY):
@@ -109,10 +102,17 @@ class Game(object):
                 continue
             self._areas[coords].decrement_alive_neighbors()
 
-    def remove_play_button(self):
-        self._play_button.remove(self._grid_sprites)
-        self._executing = True
-
+    def change_play_pause_button(self):
+        if self._options_menu_sprites.has(self._play_button):
+            self._play_button.remove(self._options_menu_sprites)
+            self._options_menu_sprites.add(self._pause_button)
+            self._executing = True
+            self._game_paused = False
+        else:
+            self._pause_button.remove(self._options_menu_sprites)
+            self._options_menu_sprites.add(self._play_button)
+            self._executing = False
+            self._game_paused = True
 
     def run_logic(self):
         if self._initial_animation:
@@ -205,12 +205,11 @@ class Game(object):
         
         for square in self._squares:
             pygame.draw.rect(screen, WHITE_SMOKE, square.shape, width=square.get_width())
-        self._grid_sprites.draw(screen)
 
-        if self._game_paused:
-            self._paused_screen.fill(SQUARE_BORDER_COLOR)
-            screen.blit(self._paused_screen, FIRST_COORDS)
-            self._pause_sprites.draw(screen)
+        self._options_menu_sprites.draw(screen)
+        pygame.draw.rect(screen, WHITE_BLURRED, self._options_menu_rect, width=0)
+
+        self._options_menu_sprites.draw(screen)
 
         pygame.display.flip()
 
