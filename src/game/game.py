@@ -3,9 +3,9 @@ from ..sprites.square import Square
 from ..sprites.pause import Pause
 from ..sprites.restart import Restart
 from ..sprites.music import Music
-from ..sprites.click_banner import Click_banner
-from ..sprites.void_screen import Void_screen
-from ..sprites.play_button import Play_button
+from ..sprites.click_banner import ClickBanner
+from ..sprites.void_screen import VoidScreen
+from ..sprites.play_button import PlayButton
 from ..utils.constants import *
 from ..utils.colors import *
 
@@ -21,16 +21,16 @@ class Game(object):
         self._alive_squares = []
         self._squares = []
         self._areas = {}
-        self._initial_animation_screen = Void_screen()
+        self._initial_animation_screen = VoidScreen()
         self._menu_background = pygame.image.load("./assets/static/menu.png").convert()
-        self._menu_click_banner = Click_banner()
+        self._menu_click_banner = ClickBanner()
         self._menu_screen = pygame.Surface(SCREEN_SIZE, pygame.SRCALPHA)
         self._paused_screen = pygame.Surface(SCREEN_SIZE, pygame.SRCALPHA)
         self._pause_button = Pause()
         self._restart_button = Restart()
         self._music_button = Music()
         self._pause_sprites = pygame.sprite.Group()
-        self._play_button = Play_button()
+        self._play_button = PlayButton()
         self._grid_sprites = pygame.sprite.Group()
 
         self._pause_sprites.add(self._pause_button, self._restart_button, self._music_button)
@@ -84,16 +84,16 @@ class Game(object):
 
     def paint_square_clicked(self, coords):
         square_coords = self.get_square_coords_by_click(coords)
-        square = self._areas[square_coords] 
+        square = self._areas[square_coords]
         square.update()
         if square.is_alive():
             self._alive_squares.append(square)
             self.set_alive_to_neighbors(square)
-            
+
         elif square.is_dead():
             self._alive_squares.remove(square)
             self.set_dead_to_neighbors(square)
-            
+
 
     def set_alive_to_neighbors(self, square):
         for i in range(NEIGHBORS_QUANTITY):
@@ -113,7 +113,7 @@ class Game(object):
         self._play_button.remove(self._grid_sprites)
         self._executing = True
 
-    
+
     def run_logic(self):
         if self._initial_animation:
             self.run_initial_animation()
@@ -123,7 +123,7 @@ class Game(object):
 
         if self._game_paused:
             return
-        
+
         if self._executing:
             self.next_generation()
 
@@ -142,7 +142,7 @@ class Game(object):
             self._menu_click_banner.change_speed_alpha_sign()
 
         self._menu_click_banner.image.set_alpha(new_alpha)
-    
+
     def next_generation(self):
         squares_to_die = []
         squares_to_live = []
@@ -164,7 +164,7 @@ class Game(object):
             if square.is_dead() and neighbors == 3:
                 # Lives cause perfect company
                 squares_to_live.append(square)
-        
+
         self.kill_squares(squares_to_die)
         self.born_squares(squares_to_live)
 
@@ -196,7 +196,8 @@ class Game(object):
             self._menu_screen.blit(self._menu_click_banner.image, self._menu_click_banner.rect)
 
             if self._initial_animation:
-                self._menu_screen.blit(self._initial_animation_screen.image, self._initial_animation_screen.rect)
+                self._menu_screen.blit(self._initial_animation_screen.image, 
+                                       self._initial_animation_screen.rect)
 
             screen.blit(self._menu_screen, FIRST_COORDS)
             pygame.display.flip()

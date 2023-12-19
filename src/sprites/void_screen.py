@@ -1,7 +1,7 @@
 from pygame import sprite, image
 
 
-class Void_screen(sprite.Sprite):
+class VoidScreen(sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.image = image.load("./assets/sprites/initial_animation.png").convert_alpha()

@@ -3,7 +3,7 @@ from ..utils.constants import *
 from ..utils.colors import *
 
 
-class Click_banner(sprite.Sprite):
+class ClickBanner(sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.image = image.load("./assets/sprites/click_start.png").convert_alpha()

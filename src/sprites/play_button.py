@@ -2,7 +2,7 @@ from pygame import sprite, image
 from ..utils.colors import *
 
 
-class Play_button(sprite.Sprite):
+class PlayButton(sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.image = image.load("./assets/sprites/play_button.png").convert_alpha()
