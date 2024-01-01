@@ -1,12 +1,12 @@
 import pygame
 from ..sprites.square import Square
+from ..sprites.play import Play
 from ..sprites.pause import Pause
 from ..sprites.restart import Restart
 from ..sprites.music import Music
+from ..sprites.music_off import MusicOff
 from ..sprites.click_banner import ClickBanner
 from ..sprites.void_screen import VoidScreen
-from ..sprites.play import Play
-from ..sprites.pause import Pause
 from ..utils.constants import *
 from ..utils.colors import *
 
@@ -19,7 +19,6 @@ class Game(object):
         self._initial_animation = True
         self._game_paused = True
         self._executing = False
-        self._alive_squares = []
         self._squares = []
         self._areas = {}
         self._initial_animation_screen = VoidScreen()
@@ -31,6 +30,7 @@ class Game(object):
         self._pause_button = Pause()
         self._restart_button = Restart()
         self._music_button = Music()
+        self._music_off_button = MusicOff()
         self._options_menu_sprites = pygame.sprite.Group()
 
         self._options_menu_sprites.add(self._play_button, self._restart_button, self._music_button)
@@ -59,6 +59,11 @@ class Game(object):
             if event.type == pygame.QUIT:
                 self.playing = False
 
+            if self.colllides_with_button(self._options_menu_sprites):
+                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+            else :
+                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if self._menu:
                     self._menu = False
@@ -69,23 +74,31 @@ class Game(object):
                     if self._pause_button.rect.collidepoint(event.pos):
                         self.change_play_pause_button()
                     elif self._restart_button.rect.collidepoint(event.pos):
+                        pygame.mixer.music.rewind()
                         self.__init__()
-                else:
+                    elif self._music_button.rect.collidepoint(event.pos):
+                        self.turn_music_on_off()
+                elif self._game_paused:
                     self.paint_square_clicked(event.pos)
 
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE and not self._menu:
                 self.change_play_pause_button()
 
+    def colllides_with_button(self, sprites):
+        for i in sprites:
+            if i.rect.collidepoint(pygame.mouse.get_pos()):
+                return True
+            
+        return False
+
     def paint_square_clicked(self, coords):
         square_coords = self.get_square_coords_by_click(coords)
         square = self._areas[square_coords]
         square.update()
-        if square.is_alive():
-            self._alive_squares.append(square)
-            self.set_alive_to_neighbors(square)
 
+        if square.is_alive():
+            self.set_alive_to_neighbors(square)
         elif square.is_dead():
-            self._alive_squares.remove(square)
             self.set_dead_to_neighbors(square)
 
     def set_alive_to_neighbors(self, square):
@@ -113,6 +126,16 @@ class Game(object):
             self._options_menu_sprites.add(self._play_button)
             self._executing = False
             self._game_paused = True
+
+    def turn_music_on_off(self):
+        if self._options_menu_sprites.has(self._music_button):
+            self._music_button.remove(self._options_menu_sprites)
+            self._options_menu_sprites.add(self._music_off_button)
+            pygame.mixer.music.pause()
+        else:
+            self._music_off_button.remove(self._options_menu_sprites)
+            self._options_menu_sprites.add(self._music_button)
+            pygame.mixer.music.unpause()
 
     def run_logic(self):
         if self._initial_animation:
@@ -206,9 +229,7 @@ class Game(object):
         for square in self._squares:
             pygame.draw.rect(screen, WHITE_SMOKE, square.shape, width=square.get_width())
 
-        self._options_menu_sprites.draw(screen)
-        pygame.draw.rect(screen, WHITE_BLURRED, self._options_menu_rect, width=0)
-
+        pygame.draw.rect(screen, LIGHT_GRAY, self._options_menu_rect, width=0)
         self._options_menu_sprites.draw(screen)
 
         pygame.display.flip()
