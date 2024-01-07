@@ -13,6 +13,7 @@ If you need more context, watch this short [video](https://www.youtube.com/watch
 
 ### Playing:
 - Just click any anywhere to alive or kill a square. Once you want to see how generations are made, press the start button
+- 
 ![image](https://github.com/simongiraldo/conways-life/assets/98622192/b46e2e62-9646-432c-b231-3a2cd37b533c)
 
 Any feedback or observation will be appreciated.
