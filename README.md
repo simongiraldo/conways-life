@@ -1,4 +1,4 @@
-# Conways life game 👾
+# Conways life game 🔳⬜
 
 A basic replication of **The conways life game** in python using pygame. If you want to know more of what does Conways life game is about, read [here](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life "here").
 
